@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Musique">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Musique Libre</title>
+<style>
+:root{--bg:#0b0b0f;--card:#17171f;--txt:#f2f2f7;--sub:#9a9aa8;--acc:#ff4d6d;--line:#26262f}
+:root[data-theme=light]{--bg:#f5f5f8;--card:#fff;--txt:#111;--sub:#6b6b78;--line:#e3e3ea}
+@media(prefers-color-scheme:light){:root[data-theme=auto]{--bg:#f5f5f8;--card:#fff;--txt:#111;--sub:#6b6b78;--line:#e3e3ea}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:16px -apple-system,system-ui,sans-serif}
+main{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(150px + env(safe-area-inset-bottom))}
+h1{font-size:28px;margin:6px 0 14px}h2{font-size:18px;margin:20px 0 8px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row img{width:48px;height:48px;border-radius:8px;background:var(--card);object-fit:cover;flex:none}
+.meta{flex:1;min-width:0;display:flex;flex-direction:column}
+.meta b,.meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta span{color:var(--sub);font-size:13px}
+button,select,input{font:inherit;color:inherit}
+.ib{background:none;border:0;font-size:20px;padding:6px 8px;color:var(--sub)}
+.ib.on{color:var(--acc)}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:9px 14px;margin:4px 6px 4px 0}
+.btn.alt{background:var(--card);color:var(--txt)}
+input[type=search],input[type=text],select{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px;margin:4px 0}
+.tag{font-size:11px;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:2px 5px}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:var(--acc)}
+.note{color:var(--sub);font-size:14px;padding:10px 0}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border:0;padding:9px 0 7px;font-size:11px;color:var(--sub)}nav button.on{color:var(--acc)}nav button u{display:block;text-decoration:none;font-size:20px}
+#mini{position:fixed;left:8px;right:8px;bottom:calc(58px + env(safe-area-inset-bottom));background:var(--card);border:1px solid var(--line);border-radius:14px;display:none;align-items:center;gap:8px;padding:6px 8px;z-index:4}
+#mini img{width:42px;height:42px;border-radius:8px;object-fit:cover}
+#full{position:fixed;inset:0;background:var(--bg);z-index:10;display:none;overflow:auto;padding:calc(env(safe-area-inset-top) + 16px) 20px 30px}
+#full .art{width:min(78vw,340px);aspect-ratio:1;border-radius:16px;object-fit:cover;display:block;margin:16px auto;background:var(--card)}
+#full .ctl{display:flex;justify-content:center;align-items:center;gap:14px}#full .ctl .ib{font-size:30px}#full .ctl .big{font-size:52px;color:var(--txt)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.tm{display:flex;justify-content:space-between;color:var(--sub);font-size:12px}
+#toast{position:fixed;top:calc(env(safe-area-inset-top) + 10px);left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:9px 14px;border-radius:20px;z-index:30;display:none;max-width:90vw;font-size:14px}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:14px;width:min(88vw,360px)}
+dialog button{display:block;width:100%;text-align:left;background:none;border:0;padding:12px 4px;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+<main id="main"></main>
+<div id="mini"><img id="mimg" alt=""><div class="meta" id="mmeta" style="flex:1"><b id="mt"></b><span id="ma"></span></div><button class="ib" id="mplay">▶︎</button><button class="ib" id="mnext">⏭</button></div>
+<div id="full">
+  <button class="ib" id="fclose">⌄ Fermer</button>
+  <img class="art" id="fimg" alt="">
+  <div class="meta" style="text-align:center"><b id="ft" style="font-size:20px"></b><span id="fa"></span></div>
+  <input type="range" id="seek" min="0" max="1000" value="0" style="margin-top:16px">
+  <div class="tm"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  <div class="ctl"><button class="ib" id="fshuf">⇄</button><button class="ib" id="fprev">⏮</button><button class="ib big" id="fplay">▶︎</button><button class="ib" id="fnext">⏭</button><button class="ib" id="frep">↻</button></div>
+  <h2>File d'attente</h2><div id="fq"></div>
+</div>
+<nav id="tabs"></nav>
+<div id="toast"></div>
+<dialog id="dlg"><b id="dtitle"></b><div id="dopts"></div><button id="dcancel" style="color:var(--sub)">Annuler</button></dialog>
+<input type="file" id="file" accept="audio/*,.mp3,.m4a,.flac" multiple hidden>
+<audio id="au" preload="auto" playsinline></audio>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const mb=n=>(n/1048576).toFixed(1)+' Mo';
+const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+
+/* ---------- Réglages ---------- */
+const S=Object.assign({cid:'',dlq:'mp32',free:true,theme:'auto'},lsGet('settings',{}));
+const saveS=()=>{lsSet('settings',S);document.documentElement.dataset.theme=S.theme};saveS();
+
+/* ---------- Base locale (IndexedDB) ---------- */
+const db=new Promise((res,rej)=>{const r=indexedDB.open('musique',1);
+ r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('tracks',{keyPath:'id'});d.createObjectStore('blobs',{keyPath:'id'});d.createObjectStore('playlists',{keyPath:'id'})};
+ r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const run=async(names,mode,fn)=>{const d=await db;return new Promise((res,rej)=>{const t=d.transaction(names,mode);const r=fn(t);
+ t.oncomplete=()=>res(r&&r.result);t.onerror=t.onabort=()=>rej(t.error)})};
+
+/* ---------- État ---------- */
+const T={};                       // id -> métadonnées
+let downloaded=new Map();         // id -> méta téléchargée
+let playlists=[];
+let favs=lsGet('favs',[]);
+const dl=new Map();               // téléchargements en cours
+const lists={};
+let view='home',queue=[],qi=-1,shuffle=false,repeat='off',curUrl=null,searchQ='',searchRes=null,home=null;
+const covUrls=new Map();
+const cov=t=>{const d=downloaded.get(t.id);if(d&&d.coverBlob){if(!covUrls.has(t.id))covUrls.set(t.id,URL.createObjectURL(d.coverBlob));return covUrls.get(t.id)}return t.cover||''};
+
+async function loadLocal(){
+ const tr=await run('tracks','readonly',t=>t.objectStore('tracks').getAll());
+ downloaded=new Map(tr.map(x=>[x.id,x]));tr.forEach(x=>T[x.id]=x);
+ playlists=await run('playlists','readonly',t=>t.objectStore('playlists').getAll());
+}
+const savePl=p=>run('playlists','readwrite',t=>t.objectStore('playlists').put(p));
+const meta=t=>{const {blob,...m}=t;return m};
+
+/* ---------- Utilitaires UI ---------- */
+let toastT;const toast=m=>{const e=$('#toast');e.textContent=m;e.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>e.style.display='none',2800)};
+function choose(title,opts){return new Promise(res=>{const d=$('#dlg');$('#dtitle').textContent=title;
+ $('#dopts').innerHTML=opts.map((o,i)=>`<button data-i="${i}">${esc(o)}</button>`).join('');
+ d.onclick=e=>{const b=e.target.closest('button');if(!b)return;d.close();res(b.id==='dcancel'?-1:+b.dataset.i)};d.onclose=()=>res(-1);d.showModal()})}
+
+/* ---------- Catalogue Jamendo ---------- */
+const mapJ=j=>({id:'j'+j.id,title:j.name,artist:j.artist_name,album:j.album_name,cover:j.image,stream:j.audio,
+ dl:j.audiodownload_allowed?j.audiodownload:'',canDl:!!(j.audiodownload_allowed&&j.audiodownload),src:'jamendo'});
+async function jamendo(params){
+ if(!S.cid)throw new Error('Ajoute ton client_id Jamendo dans Réglages.');
+ if(!navigator.onLine)throw new Error('Pas de connexion : seul le contenu téléchargé est disponible.');
+ const u=new URL('https://api.jamendo.com/v3.0/tracks/');
+ const p={client_id:S.cid,format:'json',limit:40,imagesize:300,audioformat:'mp32',audiodlformat:S.dlq,...params};
+ if(S.free)p.audiodownload_allowed='true';
+ Object.entries(p).forEach(([k,v])=>u.searchParams.set(k,v));
+ const r=await fetch(u);if(!r.ok)throw new Error('Erreur réseau ('+r.status+')');
+ const j=await r.json();if(j.headers&&j.headers.status==='failed')throw new Error(j.headers.error_message||'Erreur Jamendo');
+ return j.results.map(x=>{const t=mapJ(x);const old=downloaded.get(t.id);return T[t.id]=old?Object.assign(t,{coverBlob:old.coverBlob}):t});
+}
+
+/* ---------- Lecteur ---------- */
+const au=$('#au');
+async function playList(name,i){queue=[...lists[name]];await playAt(i)}
+async function playAt(i){
+ const t=queue[i];if(!t)return;qi=i;let src=t.stream;
+ if(downloaded.has(t.id)){const b=await run('blobs','readonly',x=>x.objectStore('blobs').get(t.id));if(b)src=URL.createObjectURL(b.blob)}
+ else if(!navigator.onLine){toast('Hors ligne : ce titre n\'est pas téléchargé');return}
+ if(curUrl){URL.revokeObjectURL(curUrl);curUrl=null}
+ if(src.startsWith('blob:'))curUrl=src;
+ au.src=src;
+ try{await au.play()}catch(e){toast('Lecture impossible : '+(e.message||'erreur'))}
+ updPlayer();setSession(t);
+}
+function next(auto){
+ if(!queue.length)return;
+ if(repeat==='one'&&auto){au.currentTime=0;au.play();return}
+ let n=shuffle&&queue.length>1?Math.floor(Math.random()*queue.length):qi+1;
+ if(n>=queue.length){if(repeat==='all')n=0;else{au.pause();return}}
+ playAt(n);
+}
+function prev(){if(au.currentTime>3||qi<=0){au.currentTime=0}else playAt(qi-1)}
+const toggle=()=>au.paused?au.play():au.pause();
+au.addEventListener('ended',()=>next(true));
+['play','pause'].forEach(e=>au.addEventListener(e,updPlayer));
+au.addEventListener('error',()=>toast('Erreur de lecture (réseau ou fichier)'));
+au.addEventListener('timeupdate',()=>{$('#cur').textContent=fmt(au.currentTime);$('#dur').textContent=fmt(au.duration);
+ if(au.duration&&!seeking)$('#seek').value=au.currentTime/au.duration*1000});
+let seeking=false;const sk=$('#seek');
+sk.addEventListener('input',()=>{seeking=true});
+sk.addEventListener('change',()=>{if(au.duration)au.currentTime=sk.value/1000*au.duration;seeking=false});
+function setSession(t){
+ if(!('mediaSession' in navigator))return;
+ navigator.mediaSession.metadata=new MediaMetadata({title:t.title,artist:t.artist,album:t.album||'',artwork:cov(t)?[{src:cov(t),sizes:'300x300'}]:[]});
+ const h={play:()=>au.play(),pause:()=>au.pause(),previoustrack:prev,nexttrack:()=>next(false),
+  seekto:e=>{au.currentTime=e.seekTime}};
+ for(const k in h)try{navigator.mediaSession.setActionHandler(k,h[k])}catch{}
+}
+function updPlayer(){
+ const t=queue[qi];$('#mini').style.display=t?'flex':'none';if(!t)return;
+ const ic=au.paused?'▶︎':'❚❚';
+ $('#mplay').textContent=ic;$('#fplay').textContent=ic;
+ $('#mimg').src=cov(t);$('#mt').textContent=t.title;$('#ma').textContent=t.artist;
+ $('#fimg').src=cov(t);$('#ft').textContent=t.title;$('#fa').textContent=t.artist;
+ $('#fshuf').classList.toggle('on',shuffle);$('#frep').classList.toggle('on',repeat!=='off');
+ $('#frep').textContent=repeat==='one'?'↻¹':'↻';
+ lists.q=queue;
+ $('#fq').innerHTML=queue.map((x,i)=>`<div class="row" data-act="jump" data-i="${i}"><div class="meta"><b style="${i===qi?'color:var(--acc)':''}">${esc(x.title)}</b><span>${esc(x.artist)}</span></div></div>`).join('');
+}
+$('#mplay').onclick=toggle;$('#fplay').onclick=toggle;$('#mnext').onclick=()=>next(false);$('#fnext').onclick=()=>next(false);$('#fprev').onclick=prev;
+$('#fshuf').onclick=()=>{shuffle=!shuffle;updPlayer()};
+$('#frep').onclick=()=>{repeat={off:'all',all:'one',one:'off'}[repeat];updPlayer()};
+$('#mini').addEventListener('click',e=>{if(!e.target.closest('button'))$('#full').style.display='block'});
+$('#fclose').onclick=()=>$('#full').style.display='none';
+
+/* ---------- Téléchargements (pause / reprise / progression) ---------- */
+function startDl(t){
+ if(!t.canDl||downloaded.has(t.id)||dl.has(t.id))return;
+ dl.set(t.id,{t,chunks:[],received:0,total:0,state:'wait'});pump();render();
+}
+function pump(){
+ let run_=[...dl.values()].filter(d=>d.state==='run').length;
+ for(const d of dl.values())if(d.state==='wait'&&run_<2){run_++;doDl(d)}
+}
+async function doDl(d){
+ d.state='run';d.ctrl=new AbortController();d.err='';render();
+ try{
+  const r=await fetch(d.t.dl,{headers:d.received?{Range:'bytes='+d.received+'-'}:{},signal:d.ctrl.signal});
+  if(!r.ok&&r.status!==206)throw new Error('Serveur : HTTP '+r.status);
+  if(d.received&&r.status!==206){d.chunks=[];d.received=0}
+  const len=+r.headers.get('content-length')||0;if(!d.total)d.total=d.received+len;
+  if(navigator.storage&&navigator.storage.estimate&&d.total){const e=await navigator.storage.estimate();
+   if(e.quota&&e.quota-e.usage<d.total*1.3)throw new Error('Espace de stockage insuffisant')}
+  const rd=r.body.getReader();let tick=0;
+  for(;;){const {done,value}=await rd.read();if(done)break;d.chunks.push(value);d.received+=value.length;
+   if(++tick%8===0&&(view==='dl'))render()}
+  const blob=new Blob(d.chunks,{type:r.headers.get('content-type')||'audio/mpeg'});
+  let coverBlob=null;try{if(d.t.cover){const c=await fetch(d.t.cover);if(c.ok)coverBlob=await c.blob()}}catch{}
+  const m={...meta(d.t),coverBlob,size:blob.size,dlAt:Date.now()};
+  try{await run(['tracks','blobs'],'readwrite',x=>{x.objectStore('tracks').put(m);x.objectStore('blobs').put({id:m.id,blob})})}
+  catch(e){throw new Error(e&&e.name==='QuotaExceededError'?'Espace de stockage insuffisant':'Écriture impossible')}
+  downloaded.set(m.id,m);T[m.id]=m;dl.delete(m.id);toast('Téléchargé : '+m.title);
+ }catch(e){
+  if(d.cancel){dl.delete(d.t.id)}
+  else if(e.name==='AbortError'){d.state='pause'}
+  else{d.state='error';d.err=!navigator.onLine||e.name==='TypeError'?'Réseau indisponible (reprendre plus tard)':e.message}
+ }
+ pump();render();
+}
+const dlPause=id=>{const d=dl.get(id);if(d&&d.ctrl&&d.state==='run')d.ctrl.abort();else if(d)d.state='pause';render()};
+const dlResume=id=>{const d=dl.get(id);if(d){d.state='wait';pump();render()}};
+const dlCancel=id=>{const d=dl.get(id);if(!d)return;d.cancel=true;if(d.state==='run')d.ctrl.abort();else dl.delete(id);render()};
+async function delTrack(id){
+ await run(['tracks','blobs'],'readwrite',x=>{x.objectStore('tracks').delete(id);x.objectStore('blobs').delete(id)});
+ downloaded.delete(id);if(covUrls.has(id)){URL.revokeObjectURL(covUrls.get(id));covUrls.delete(id)}render();
+}
+
+/* ---------- Import de fichiers personnels ---------- */
+$('#file').onchange=async e=>{
+ let n=0;for(const f of e.target.files){
+  const id='l'+Date.now()+'_'+n++;const name=f.name.replace(/\.[^.]+$/,'');
+  const m=name.includes(' - ')?name.split(' - '):['',name];
+  const t={id,title:(m[1]||name).trim(),artist:(m[0]||'Fichier personnel').trim(),album:'',cover:'',src:'local',canDl:false,size:f.size,dlAt:Date.now(),coverBlob:null};
+  try{await run(['tracks','blobs'],'readwrite',x=>{x.objectStore('tracks').put(t);x.objectStore('blobs').put({id,blob:f})});downloaded.set(id,t);T[id]=t}
+  catch{toast('Espace insuffisant pour '+f.name)}
+ }
+ e.target.value='';toast(n+' fichier(s) importé(s)');render();
+};
+
+/* ---------- Favoris & playlists ---------- */
+function toggleFav(t){const i=favs.findIndex(x=>x.id===t.id);if(i>=0)favs.splice(i,1);else favs.push(meta(t));lsSet('favs',favs);render()}
+async function addToPl(t){
+ const names=playlists.map(p=>p.name).concat('＋ Nouvelle playlist');
+ const i=await choose('Ajouter à une playlist',names);if(i<0)return;
+ let p;if(i===playlists.length){const n=prompt('Nom de la playlist');if(!n)return;p={id:'p'+Date.now(),name:n,tracks:[]};playlists.push(p)}else p=playlists[i];
+ if(!p.tracks.some(x=>x.id===t.id))p.tracks.push(meta(t));await savePl(p);toast('Ajouté à « '+p.name+' »');render();
+}
+
+/* ---------- Vues ---------- */
+const btns=t=>{
+ const f=favs.some(x=>x.id===t.id);
+ let d;if(downloaded.has(t.id))d='<span class="tag">✓ hors ligne</span>';
+ else if(dl.has(t.id))d='<span class="tag">…</span>';
+ else if(t.canDl)d=`<button class="ib" data-act="dl" data-id="${t.id}">⬇︎</button>`;
+ else d='<span class="tag">streaming</span>';
+ return `<button class="ib ${f?'on':''}" data-act="fav" data-id="${t.id}">${f?'♥︎':'♡'}</button><button class="ib" data-act="add" data-id="${t.id}">＋</button>${d}`;
+};
+const rows=(name,arr)=>{lists[name]=arr;return arr.map((t,i)=>{T[t.id]=T[t.id]||t;
+ return `<div class="row" data-act="play" data-l="${name}" data-i="${i}"><img src="${esc(cov(t))}" alt=""><div class="meta"><b>${esc(t.title)}</b><span>${esc(t.artist)}</span></div>${btns(t)}</div>`}).join('')};
+
+const V={
+ async home(el){
+  el.innerHTML='<h1>Accueil</h1>'+(favs.length?'<h2>Favoris</h2>'+rows('favs',favs):'')+'<h2>Populaires cette semaine</h2><div id="pop" class="note">Chargement…</div>';
+  try{home=home||await jamendo({order:'popularity_week'});$('#pop').outerHTML='<div>'+rows('home',home)+'</div>'}
+  catch(e){const p=$('#pop');if(p)p.textContent=e.message}
+ },
+ search(el){
+  el.innerHTML=`<h1>Recherche</h1><input type="search" id="q" placeholder="Chanson, artiste, album" value="${esc(searchQ)}"><div id="res">${searchRes?rows('search',searchRes):'<div class="note">Tape pour chercher dans le catalogue Jamendo (musique libre).</div>'}</div>`;
+  let tm;$('#q').oninput=e=>{searchQ=e.target.value.trim();clearTimeout(tm);tm=setTimeout(async()=>{
+   if(searchQ.length<2){searchRes=null;return}
+   try{searchRes=await jamendo({search:searchQ});$('#res').innerHTML=searchRes.length?rows('search',searchRes):'<div class="note">Aucun résultat.</div>'}
+   catch(err){$('#res').innerHTML='<div class="note">'+esc(err.message)+'</div>'}},400)};
+ },
+ lib(el){
+  el.innerHTML='<h1>Bibliothèque</h1><button class="btn" id="imp">Importer des fichiers</button><button class="btn alt" id="newpl">Nouvelle playlist</button><h2>Playlists</h2>'+
+   (playlists.length?playlists.map(p=>`<div class="row" data-act="openpl" data-id="${p.id}"><div class="meta"><b>${esc(p.name)}</b><span>${p.tracks.length} titre(s)</span></div></div>`).join(''):'<div class="note">Aucune playlist.</div>')+
+   '<h2>Favoris</h2>'+(favs.length?rows('favs2',favs):'<div class="note">Aucun favori.</div>');
+  $('#imp').onclick=()=>$('#file').click();
+  $('#newpl').onclick=async()=>{const n=prompt('Nom de la playlist');if(!n)return;const p={id:'p'+Date.now(),name:n,tracks:[]};playlists.push(p);await savePl(p);render()};
+ },
+ pl(el){
+  const p=playlists.find(x=>x.id===view.slice(3));if(!p){view='lib';return render()}
+  const elig=p.tracks.filter(t=>t.canDl&&!downloaded.has(t.id)&&!dl.has(t.id)).length;
+  el.innerHTML=`<button class="ib" data-act="back">‹ Bibliothèque</button><h1>${esc(p.name)}</h1>
+   <button class="btn" data-act="dlpl" data-id="${p.id}">Télécharger (${elig} éligible${elig>1?'s':''})</button><button class="btn alt" data-act="rmpl" data-id="${p.id}">Supprimer</button>`+
+   (p.tracks.length?rows('pl',p.tracks):'<div class="note">Playlist vide.</div>')+
+   '<div class="note">Les titres « streaming » ne peuvent pas être téléchargés (licence).</div>';
+ },
+ dl(el){
+  const act=[...dl.values()];
+  el.innerHTML='<h1>Téléchargements</h1><div id="stor" class="note"></div>'+
+   (act.length?'<h2>En cours</h2>'+act.map(d=>{const p=d.total?Math.round(d.received/d.total*100):0;
+    const lab={wait:'En attente',run:p+' %',pause:'En pause ('+p+' %)',error:d.err}[d.state];
+    return `<div class="row"><div class="meta"><b>${esc(d.t.title)}</b><span>${esc(lab)}</span><div class="bar"><i style="width:${p}%"></i></div></div>
+     ${d.state==='run'?`<button class="ib" data-act="pause" data-id="${d.t.id}">❚❚</button>`:`<button class="ib" data-act="resume" data-id="${d.t.id}">▶︎</button>`}
+     <button class="ib" data-act="cancel" data-id="${d.t.id}">✕</button></div>`}).join(''):'')+
+   '<h2>Disponibles hors ligne</h2>'+
+   (downloaded.size?[...downloaded.values()].sort((a,b)=>b.dlAt-a.dlAt).map((t,i,arr)=>{lists.off=arr;
+    return `<div class="row" data-act="play" data-l="off" data-i="${i}"><img src="${esc(cov(t))}" alt=""><div class="meta"><b>${esc(t.title)}</b><span>${esc(t.artist)} · ${mb(t.size||0)}</span></div><button class="ib" data-act="del" data-id="${t.id}">🗑</button></div>`}).join(''):'<div class="note">Rien pour l\'instant. Appuie sur ⬇︎ à côté d\'un titre, ou importe tes fichiers.</div>');
+  if(navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(e=>{const s=$('#stor');if(s)s.textContent='Stockage utilisé : '+mb(e.usage||0)+' sur '+mb(e.quota||0)+' disponibles'});
+ },
+ set(el){
+  el.innerHTML=`<h1>Réglages</h1>
+   <h2>Clé Jamendo (client_id)</h2><input type="text" id="cid" value="${esc(S.cid)}" placeholder="Colle ton client_id" autocapitalize="off" autocorrect="off">
+   <div class="note">Gratuit : devportal.jamendo.com → créer une application.</div>
+   <h2>Qualité des téléchargements</h2><select id="dlq"><option value="mp31">Économique (MP3 ~96 kb/s)</option><option value="mp32">Haute (MP3 VBR ~192 kb/s)</option><option value="flac">Sans perte (FLAC, volumineux)</option></select>
+   <h2>Catalogue</h2><label><input type="checkbox" id="free" ${S.free?'checked':''}> Afficher uniquement les titres téléchargeables</label>
+   <h2>Thème</h2><select id="theme"><option value="auto">Automatique</option><option value="dark">Sombre</option><option value="light">Clair</option></select>
+   <h2>Stockage</h2><button class="btn alt" id="persist">Protéger mes téléchargements</button><div class="note">Demande à iOS de ne pas effacer les données de l'app. Ajoute l'app à l'écran d'accueil pour de meilleurs résultats.</div>`;
+  $('#dlq').value=S.dlq;$('#theme').value=S.theme;
+  $('#cid').onchange=e=>{S.cid=e.target.value.trim();saveS();home=null;searchRes=null};
+  $('#dlq').onchange=e=>{S.dlq=e.target.value;saveS();home=null;searchRes=null};
+  $('#free').onchange=e=>{S.free=e.target.checked;saveS();home=null;searchRes=null};
+  $('#theme').onchange=e=>{S.theme=e.target.value;saveS()};
+  $('#persist').onclick=async()=>{const ok=navigator.storage&&navigator.storage.persist?await navigator.storage.persist():false;toast(ok?'Stockage protégé':'Non accordé par le navigateur')};
+ }
+};
+const TABS=[['home','♪','Accueil'],['search','⌕','Recherche'],['lib','▤','Bibliothèque'],['dl','⬇︎','Téléchargements'],['set','⚙︎','Réglages']];
+function render(){
+ const main=$('#main'),sc=main.scrollTop;
+ const key=view.startsWith('pl:')?'pl':view;
+ $('#tabs').innerHTML=TABS.map(([k,i,l])=>`<button class="${key===k||(key==='pl'&&k==='lib')?'on':''}" data-tab="${k}"><u>${i}</u>${l}</button>`).join('');
+ if(document.activeElement&&document.activeElement.id==='q')return;
+ V[key](main);window.scrollTo(0,0);
+}
+document.addEventListener('click',async e=>{
+ const tb=e.target.closest('[data-tab]');if(tb){view=tb.dataset.tab;return render()}
+ const a=e.target.closest('[data-act]');if(!a)return;
+ const id=a.dataset.id,t=T[id],act=a.dataset.act;
+ if(act==='play')playList(a.dataset.l,+a.dataset.i);
+ else if(act==='jump')playAt(+a.dataset.i);
+ else if(act==='fav'&&t)toggleFav(t);
+ else if(act==='add'&&t)addToPl(t);
+ else if(act==='dl'&&t){startDl(t);toast('Téléchargement ajouté')}
+ else if(act==='pause')dlPause(id);else if(act==='resume')dlResume(id);else if(act==='cancel')dlCancel(id);
+ else if(act==='del'){if(confirm('Supprimer ce titre de l\'appareil ?'))delTrack(id)}
+ else if(act==='openpl'){view='pl:'+id;render()}
+ else if(act==='back'){view='lib';render()}
+ else if(act==='dlpl'){const p=playlists.find(x=>x.id===id);p.tracks.forEach(x=>startDl(T[x.id]||x));toast('Titres éligibles ajoutés aux téléchargements');render()}
+ else if(act==='rmpl'){if(confirm('Supprimer cette playlist ?')){await run('playlists','readwrite',x=>x.objectStore('playlists').delete(id));playlists=playlists.filter(x=>x.id!==id);view='lib';render()}}
+});
+addEventListener('online',()=>{home=null;if(view==='home')render()});
+addEventListener('offline',()=>toast('Mode hors ligne'));
+
+(async()=>{
+ try{await loadLocal()}catch{toast('Stockage local indisponible')}
+ view=navigator.onLine?'home':'dl';render();
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
+
+# Musique Libre — installation sur iPhone (sans Mac)
+
+## 1. Clé gratuite Jamendo
+1. Va sur devportal.jamendo.com, crée un compte, puis une application.
+2. Copie le **client_id**. Tu le colleras dans Réglages de l'app.
+
+## 2. Héberger les fichiers (HTTPS obligatoire)
+Option GitHub Pages (gratuit) :
+1. Sur github.com, crée un dépôt public (ex. `musique`).
+2. « Add file » → « Upload files » : envoie `index.html`, `sw.js`, `manifest.webmanifest` et les 3 PNG (dézippe d'abord l'archive dans Fichiers).
+3. Settings → Pages → Branch `main` / `/ (root)` → Save.
+4. Après ~1 minute, l'adresse est `https://TON-PSEUDO.github.io/musique/`.
+
+## 3. Installer sur l'iPhone
+1. Ouvre l'adresse dans **Safari**.
+2. Partager → **Sur l'écran d'accueil**. Lance l'app depuis cette icône.
+3. Réglages → colle le client_id → « Protéger mes téléchargements ».
+
+## 4. Tester le hors ligne
+1. Télécharge un titre (⬇︎), attends le « ✓ hors ligne ».
+2. Active le mode avion, ouvre Téléchargements, lance la lecture.
+
+## Mises à jour
+Après modification de `index.html`, change `musique-v1` en `musique-v2` dans `sw.js`.
+
+## Limites
+- Seuls les titres Jamendo marqués téléchargeables et tes fichiers importés sont disponibles hors ligne.
+- iOS peut effacer le stockage d'un site peu utilisé : garde l'app sur l'écran d'accueil et garde des copies de tes fichiers.
+
+{
+  "name": "Musique Libre",
+  "short_name": "Musique",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0b0f",
+  "theme_color": "#0b0b0f",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
+
+const C='musique-v1';
+const A=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)));self.skipWaiting()});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
+self.addEventListener('fetch',e=>{
+  const u=new URL(e.request.url);
+  if(e.request.method!=='GET'||u.origin!==location.origin)return;
+  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)));
+});
